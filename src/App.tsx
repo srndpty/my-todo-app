@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'; // useEffect をインポート
-import './App.css'; // あとでスタイルを少しだけ書きます
+import './App.css';
 import axios from 'axios';
 
 const apiClient = axios.create({
   baseURL: 'https://my-todo-app-6nqa.onrender.com'
 });
 
-// 1つのタスクが持つデータの「型」を定義しておくと、TypeScriptが守ってくれます
+// 1つのタスクが持つデータの「型」を定義しておく（TypeScriptが守ってくれる）
 type Task = {
   id: number;
   title: string;
@@ -17,9 +17,9 @@ function App() {
   // タスクのリストを管理するためのstate
   // 型は上で定義したTaskの配列 (Task[])
   const [tasks, setTasks] = useState<Task[]>([
-    // 初期データを入れておくと開発しやすい
-    { id: 1, title: 'Reactの勉強', completed: false },
-    { id: 2, title: 'APIの設計', completed: true },
+    // 初期データは空にしておく
+    // { id: 1, title: 'Reactの勉強', completed: false },
+    // { id: 2, title: 'APIの設計', completed: true },
   ]);
   // フォームの入力値を管理するためのstate
   const [newTodoTitle, setNewTodoTitle] = useState<string>('');
