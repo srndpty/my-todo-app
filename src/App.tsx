@@ -3,7 +3,7 @@ import './App.css'; // あとでスタイルを少しだけ書きます
 import axios from 'axios';
 
 const apiClient = axios.create({
-  baseURL: 'https://my-todo-app-6nqa.onrender.com/api'
+  baseURL: 'https://my-todo-app-6nqa.onrender.com'
 });
 
 // 1つのタスクが持つデータの「型」を定義しておくと、TypeScriptが守ってくれます
