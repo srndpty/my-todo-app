@@ -27,7 +27,7 @@ function App() {
   const handleAddTask = async () => {
     if (newTodoTitle.trim() === '') return;
     try {
-      const response = await apiClient.post('/tasks', { title: newTodoTitle });
+      const response = await apiClient.post('/api/tasks', { title: newTodoTitle });
       setTasks([...tasks, response.data]); // APIからのレスポンスでstateを更新
       setNewTodoTitle('');
     } catch (error) {
@@ -43,7 +43,7 @@ function App() {
       if (!taskToUpdate) return;
 
       // APIを呼び出して、データベースのcompletedフラグを更新
-      const response = await apiClient.put(`/tasks/${id}`, {
+      const response = await apiClient.put(`/api/tasks/${id}`, {
         completed: !taskToUpdate.completed,
       });
 
@@ -62,7 +62,7 @@ function App() {
   const handleDeleteTask = async (id: number) => {
     try {
       // APIを呼び出して、データベースからタスクを削除
-      await apiClient.delete(`/tasks/${id}`);
+      await apiClient.delete(`/api/tasks/${id}`);
 
       // フロントエンドのstateからも、該当するタスクを削除
       const newTasks = tasks.filter(task => task.id !== id);
@@ -76,7 +76,7 @@ function App() {
   useEffect(() => {
     const fetchTasks = async () => {
       try {
-        const response = await apiClient.get('/tasks');
+        const response = await apiClient.get('/api/tasks');
         setTasks(response.data); // APIから取得したデータでstateを更新
       } catch (error) {
         console.error("Error fetching tasks:", error);
