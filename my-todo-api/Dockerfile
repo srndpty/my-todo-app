@@ -54,7 +54,6 @@ RUN apt-get update && apt-get upgrade -y \
     && apt-get install -y yarn \
     && apt-get install -y $MYSQL_CLIENT \
     && apt-get install -y postgresql-client-$POSTGRES_VERSION \
-    && systemctl disable nginx && systemctl disable php8.3-fpm \
     && apt-get -y autoremove \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
@@ -70,6 +69,7 @@ COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY php.ini /etc/php/8.3/cli/conf.d/99-sail.ini
 COPY php.ini /etc/php/8.3/fpm/conf.d/99-sail.ini
 COPY nginx.conf /etc/nginx/sites-available/default
+COPY www.conf /etc/php/8.3/fpm/pool.d/www.conf
 # COPY php-fpm.conf /etc/php/8.3/fpm/php-fpm.conf
 
 RUN chmod +x /usr/local/bin/start-container
