@@ -41,9 +41,9 @@ COPY --chown=www-data:www-data . .
 RUN composer install --no-interaction --no-plugins --no-scripts --no-dev --prefer-dist --optimize-autoloader
 
 # Laravelのキャッシュを作成
-RUN php artisan config:cache && \
-    php artisan route:cache && \
-    php artisan view:cache
+# RUN php artisan config:cache && \
+#     php artisan route:cache && \
+#     php artisan view:cache
 
 # パーミッションの設定
 RUN chown -R www-data:www-data storage bootstrap/cache
@@ -66,9 +66,9 @@ COPY --from=php /usr/bin/supervisord /usr/bin/supervisord
 EXPOSE 80
 
 # Supervisorを起動
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
+# CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
 
 # # ↓↓↓ 上のCMDの行を、以下の3行に置き換えてください ↓↓↓
-# COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-# RUN chmod +x /usr/local/bin/entrypoint.sh
-# ENTRYPOINT ["entrypoint.sh"]
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+ENTRYPOINT ["entrypoint.sh"]
