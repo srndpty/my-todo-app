@@ -66,9 +66,6 @@ COPY --from=php /usr/bin/supervisord /usr/bin/supervisord
 EXPOSE 80
 
 # Supervisorを起動
-# CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
-
-# # ↓↓↓ 上のCMDの行を、以下の3行に置き換えてください ↓↓↓
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["entrypoint.sh"]
