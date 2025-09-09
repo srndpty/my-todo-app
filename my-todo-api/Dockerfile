@@ -64,6 +64,9 @@ RUN userdel -r ubuntu
 RUN groupadd --force -g ${WWWGROUP} sail
 RUN useradd -ms /bin/bash --no-user-group -g ${WWWGROUP} -u 1337 sail
 
+RUN sed -i -e 's/;daemonize = yes/daemonize = no/g' /etc/php/8.3/fpm/php-fpm.conf
+RUN sed -i -e 's/error_log = \/var\/log\/php8.3-fpm.log/error_log = \/dev\/stderr/g' /etc/php/8.3/fpm/pool.d/www.conf
+
 COPY start-container /usr/local/bin/start-container
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY php.ini /etc/php/8.3/cli/conf.d/99-sail.ini
