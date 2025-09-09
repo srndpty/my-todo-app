@@ -69,7 +69,7 @@ COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY php.ini /etc/php/8.3/cli/conf.d/99-sail.ini
 COPY php.ini /etc/php/8.3/fpm/conf.d/99-sail.ini
 COPY nginx.conf /etc/nginx/sites-available/default
-COPY php-fpm.conf /etc/php/8.3/fpm/php-fpm.conf
+# COPY php-fpm.conf /etc/php/8.3/fpm/php-fpm.conf
 
 RUN chmod +x /usr/local/bin/start-container
 
