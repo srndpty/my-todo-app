@@ -1,79 +1,69 @@
-FROM ubuntu:24.04
+# ステップ1: PHPのベースイメージと拡張機能のインストール
+FROM php:8.3-fpm-alpine AS php
 
-LABEL maintainer="Taylor Otwell"
+# Alpine Linuxのパッケージをインストール
+RUN apk add --no-cache \
+    curl \
+    nginx \
+    supervisor \
+    git \
+    libzip-dev \
+    zip \
+    libpng-dev \
+    jpeg-dev \
+    freetype-dev \
+    postgresql-dev
 
-ARG WWWGROUP=1000
-ARG SAHARA_USER=sail
-ARG NODE_VERSION=22
-ARG MYSQL_CLIENT="mysql-client"
-ARG POSTGRES_VERSION=17
+# PHP拡張機能をインストール
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) \
+    gd \
+    pdo pdo_mysql pdo_pgsql \
+    zip
+
+# Composerをインストール
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# NginxとPHP-FPMの設定ファイルをコピー
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY www.conf /usr/local/etc/php-fpm.d/www.conf
+COPY supervisord.conf /etc/supervisord.conf
 
 WORKDIR /var/www/html
 
-ENV DEBIAN_FRONTEND=noninteractive
-ENV TZ=UTC
-ENV SUPERVISOR_PHP_COMMAND="/usr/bin/php -d variables_order=EGPCS /var/www/html/artisan serve --host=0.0.0.0 --port=80"
-ENV SUPERVISOR_PHP_USER="sail"
-ENV PLAYWRIGHT_BROWSERS_PATH=0 
+# ステップ2: アプリケーションのコードと依存関係のインストール
+FROM php AS app
 
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+# アプリケーションのコードをコピー
+COPY --chown=www-data:www-data . .
 
-RUN echo "Acquire::http::Pipeline-Depth 0;" > /etc/apt/apt.conf.d/99custom && \
-    echo "Acquire::http::No-Cache true;" >> /etc/apt/apt.conf.d/99custom && \
-    echo "Acquire::BrokenProxy    true;" >> /etc/apt/apt.conf.d/99custom
+# Composerの依存関係をインストール
+RUN composer install --no-interaction --no-plugins --no-scripts --no-dev --prefer-dist --optimize-autoloader
 
-RUN apt-get update && apt-get upgrade -y \
-    && mkdir -p /etc/apt/keyrings \
-    && apt-get install -y nginx gnupg gosu curl ca-certificates zip unzip git supervisor sqlite3 libcap2-bin libpng-dev python3 dnsutils librsvg2-bin fswatch ffmpeg nano php8.3-fpm   \
-    && curl -sS 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xb8dc7e53946656efbce4c1dd71daeaab4ad4cab6' | gpg --dearmor | tee /etc/apt/keyrings/ppa_ondrej_php.gpg > /dev/null \
-    && echo "deb [signed-by=/etc/apt/keyrings/ppa_ondrej_php.gpg] https://ppa.launchpadcontent.net/ondrej/php/ubuntu noble main" > /etc/apt/sources.list.d/ppa_ondrej_php.list \
-    && apt-get update \
-    && apt-get install -y php8.3-cli php8.3-dev \
-       php8.3-pgsql php8.3-sqlite3 php8.3-gd \
-       php8.3-curl php8.3-mongodb \
-       php8.3-imap php8.3-mysql php8.3-mbstring \
-       php8.3-xml php8.3-zip php8.3-bcmath php8.3-soap \
-       php8.3-intl php8.3-readline \
-       php8.3-ldap \
-       php8.3-msgpack php8.3-igbinary php8.3-redis \
-       php8.3-memcached php8.3-pcov php8.3-imagick php8.3-xdebug php8.3-swoole \
-    && curl -sLS https://getcomposer.org/installer | php -- --install-dir=/usr/bin/ --filename=composer \
-    && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
-    && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_VERSION.x nodistro main" > /etc/apt/sources.list.d/nodesource.list \
-    && apt-get update \
-    && apt-get install -y nodejs \
-    && npm install -g npm \
-    && npm install -g pnpm \
-    && npm install -g bun \
-    && npx playwright install-deps \
-    && curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | gpg --dearmor | tee /etc/apt/keyrings/yarn.gpg >/dev/null \
-    && echo "deb [signed-by=/etc/apt/keyrings/yarn.gpg] https://dl.yarnpkg.com/debian/ stable main" > /etc/apt/sources.list.d/yarn.list \
-    && curl -sS https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor | tee /etc/apt/keyrings/pgdg.gpg >/dev/null \
-    && echo "deb [signed-by=/etc/apt/keyrings/pgdg.gpg] http://apt.postgresql.org/pub/repos/apt noble-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
-    && apt-get update \
-    && apt-get install -y yarn \
-    && apt-get install -y $MYSQL_CLIENT \
-    && apt-get install -y postgresql-client-$POSTGRES_VERSION \
-    && apt-get -y autoremove \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+# Laravelのキャッシュを作成
+RUN php artisan config:cache && \
+    php artisan route:cache && \
+    php artisan view:cache
 
-RUN setcap "cap_net_bind_service=+ep" /usr/bin/php8.3
+# パーミッションの設定
+RUN chown -R www-data:www-data storage bootstrap/cache
 
-RUN userdel -r ubuntu
-RUN groupadd --force -g ${WWWGROUP} sail
-RUN useradd -ms /bin/bash --no-user-group -g ${WWWGROUP} -u 1337 sail
+# 最終的なイメージ
+FROM app as final
 
-COPY start-container /usr/local/bin/start-container
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-COPY php.ini /etc/php/8.3/cli/conf.d/99-sail.ini
-COPY php.ini /etc/php/8.3/fpm/conf.d/99-sail.ini
-COPY nginx.conf /etc/nginx/sites-available/default
-COPY www.conf /etc/php/8.3/fpm/pool.d/www.conf
-# COPY php-fpm.conf /etc/php/8.3/fpm/php-fpm.conf
+# 必要なファイルだけをコピー
+COPY --from=app /var/www/html /var/www/html
+COPY --from=php /etc/nginx/nginx.conf /etc/nginx/nginx.conf
+COPY --from=php /usr/local/etc/php-fpm.d/www.conf /usr/local/etc/php-fpm.d/www.conf
+COPY --from=php /etc/supervisord.conf /etc/supervisord.conf
+COPY --from=php /usr/local/bin/docker-php-entrypoint /usr/local/bin/docker-php-entrypoint
+COPY --from=php /usr/sbin/nginx /usr/sbin/nginx
+COPY --from=php /usr/local/sbin/php-fpm /usr/local/sbin/php-fpm
+COPY --from=php /usr/bin/supervisorctl /usr/bin/supervisorctl
+COPY --from=php /usr/bin/supervisord /usr/bin/supervisord
 
-RUN chmod +x /usr/local/bin/start-container
-
+# ポートを開放
 EXPOSE 80
 
-ENTRYPOINT ["start-container"]
+# Supervisorを起動
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
