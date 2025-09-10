@@ -1,23 +1,35 @@
 import { useState } from 'react';
-// import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../stores/authStore';
+import apiClient from '../api/apiClient';
 
 function LoginPage() {
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
-//   const navigate = useNavigate();
+  const [error, setError] = useState<string | null>('');
+  const navigate = useNavigate();
+  const { setUser, setToken } = useAuthStore();
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    // ここでログイン処理を実装する（例: API呼び出し）
-    console.log('Logging in with', { email, password });
-    // ログイン成功後、ホームページにリダイレクト
-    // navigate('/');
+    setError('');
+    try {
+        const response = await apiClient.post('/api/login', { email, password });
+        setUser(response.data.user);
+        setToken(response.data.token);
+        navigate('/');
+    } catch (error) {
+        setError('Login failed. Please check your credentials.');
+        console.error("Login error:", error);
+    }
   };
 
   return (
     <div>
       <h2>Login</h2>
       <form onSubmit={handleSubmit}>
+        {error && <p style={{ color: 'red' }}>{error}</p>}
         <div>
           <label htmlFor="email">Email:</label>
           <input

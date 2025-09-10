@@ -1,21 +1,54 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import apiClient from '../api/apiClient';
+import { AxiosError } from 'axios';
+
+type ValidationErrors = {
+  [key: string]: string[];
+};
 
 function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirmation, setPasswordConfirmation] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    console.log('Register attempt with:', { name, email, password, password_confirmation: passwordConfirmation });
-    // TODO: APIを呼び出す
+    setError(null);
+    if (password !== passwordConfirmation) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    try {
+      await apiClient.post('/api/register', { name, email, password, password_confirmation: passwordConfirmation });
+      alert('Registration successful! Please log in.');
+      navigate('/login');
+    } catch (err) {
+      console.error("Registration error:", error);
+      if (err instanceof AxiosError && err.response) {
+        // Laravelのバリデーションエラー(422)の場合
+        if (err.response.status === 422) {
+          const data = err.response.data as { errors: ValidationErrors };
+          const messages = Object.values(data.errors).flat().join('\n');
+          setError(messages);
+        } else {
+            setError('An error occurred during registration.');
+        }
+      } else {
+        setError('An error occurred during registration.');
+      }
+    }
   };
 
   return (
     <div>
       <h2>Register</h2>
       <form onSubmit={handleSubmit}>
+        {error && <p style={{ color: 'red', whiteSpace: 'pre-wrap' }}>{error}</p>}
         <div>
           <label htmlFor="name">Name:</label>
           <input type="text" id="name" value={name} onChange={(e) => setName(e.target.value)} required />

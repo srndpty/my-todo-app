@@ -1,9 +1,5 @@
 import { useState, useEffect } from 'react'; // useEffect をインポート
-import axios from 'axios';
-
-const apiClient = axios.create({
-  baseURL: 'https://my-todo-app-6nqa.onrender.com'
-});
+import apiClient from '../api/apiClient';
 
 // 1つのタスクが持つデータの「型」を定義しておく（TypeScriptが守ってくれる）
 type Task = {
