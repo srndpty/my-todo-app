@@ -1,10 +1,9 @@
-# -- PHPのベースイメージ --
-# Alpine Linuxベースで軽量なPHP-FPMイメージを使用
-FROM php:8.3-fpm-alpine
+# ステップ1: PHPのベースイメージと拡張機能のインストール
+FROM php:8.3-fpm-alpine AS php
 
-# 必要なツールとPHP拡張機能をインストール
-# supervisorはアプリケーションの実行に必要なので残す
+# Alpine Linuxのパッケージをインストール
 RUN apk add --no-cache \
+    curl \
     nginx \
     supervisor \
     git \
@@ -19,29 +18,54 @@ RUN apk add --no-cache \
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
     gd \
-    pdo pdo_pgsql \
+    pdo pdo_mysql pdo_pgsql \
     zip
 
-# Composerをグローバルにインストール
+# Composerをインストール
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# 作業ディレクトリを設定
+# NginxとPHP-FPMの設定ファイルをコピー
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY www.conf /usr/local/etc/php-fpm.d/www.conf
+COPY supervisord.conf /etc/supervisord.conf
+
 WORKDIR /var/www/html
 
-# NginxとSupervisorの設定ファイルをコピー
-COPY nginx.conf /etc/nginx/http.d/default.conf
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+# ステップ2: アプリケーションのコードと依存関係のインストール
+FROM php AS app
 
 # アプリケーションのコードをコピー
-# この時点ではvendorディレクトリは含まない
-COPY . .
+COPY --chown=www-data:www-data . .
 
-# パーミッションを設定
-# storageとbootstrap/cacheの所有者をwww-dataに変更
+# Composerの依存関係をインストール
+RUN composer install --no-interaction --no-plugins --no-scripts --no-dev --prefer-dist --optimize-autoloader
+
+# Laravelのキャッシュを作成
+# RUN php artisan config:cache && \
+#     php artisan route:cache && \
+#     php artisan view:cache
+
+# パーミッションの設定
 RUN chown -R www-data:www-data storage bootstrap/cache
+
+# 最終的なイメージ
+FROM app as final
+
+# 必要なファイルだけをコピー
+COPY --from=app /var/www/html /var/www/html
+COPY --from=php /etc/nginx/nginx.conf /etc/nginx/nginx.conf
+COPY --from=php /usr/local/etc/php-fpm.d/www.conf /usr/local/etc/php-fpm.d/www.conf
+COPY --from=php /etc/supervisord.conf /etc/supervisord.conf
+COPY --from=php /usr/local/bin/docker-php-entrypoint /usr/local/bin/docker-php-entrypoint
+COPY --from=php /usr/sbin/nginx /usr/sbin/nginx
+COPY --from=php /usr/local/sbin/php-fpm /usr/local/sbin/php-fpm
+COPY --from=php /usr/bin/supervisorctl /usr/bin/supervisorctl
+COPY --from=php /usr/bin/supervisord /usr/bin/supervisord
 
 # ポートを開放
 EXPOSE 80
 
-# コンテナ起動時にSupervisorを実行
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+# Supervisorを起動
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+ENTRYPOINT ["entrypoint.sh"]
