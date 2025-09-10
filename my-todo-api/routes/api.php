@@ -13,4 +13,6 @@ Route::post('/register', [AuthController::class, 'register']); // ユーザー�
 Route::post('/login', [AuthController::class, 'login']);       // ログイン用ルート
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');     // ログアウト用ルート(requires valid sanctum token)
 
-Route::apiResource('tasks', TaskController::class);
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('tasks', TaskController::class);
+});
