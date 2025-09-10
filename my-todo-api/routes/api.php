@@ -3,10 +3,14 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\TaskController;
+use App\Http\Controllers\Api\AuthController; // AuthControllerをインポート
 
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-// 追加
+Route::post('/register', [AuthController::class, 'register']); // ユーザー登録用ルート
+Route::post('/login', [AuthController::class, 'login']);       // ログイン用ルート
+Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');     // ログアウト用ルート(requires valid sanctum token)
+
 Route::apiResource('tasks', TaskController::class);
