@@ -16,3 +16,6 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanc
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('tasks', TaskController::class);
 });
+Route::get('/health', function () {
+    return response()->json(['status' => 'ok']);
+});

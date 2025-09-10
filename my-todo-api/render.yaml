@@ -1,0 +1,41 @@
+services:
+  # Laravel API Web Service
+  - type: web
+    name: my-todo-app # あなたのサービス名
+    env: docker
+    repo: https://github.com/srndpty/my-todo-app.git # あなたのリポジトリURL
+    rootDir: ./my-todo-api
+    plan: free # 無料プランを指定
+    healthCheckPath: /api/health # ヘルスチェック用のパス
+    envVars:
+      # ここに、Renderのダッシュボードで設定した環境変数をコピーする
+      # 重要：`value`ではなく`fromService`や`fromDatabase`を使うのがベスト
+      - key: APP_KEY
+        fromService:
+          type: web
+          name: my-todo-api # 自分自身のサービス名
+          envVarKey: APP_KEY
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DATABASE_URL
+        fromDatabase:
+          name: db-for-todoapp # あなたのデータベース名
+          property: connectionString
+
+    # ビルドと起動のコマンドを定義
+    build:
+      command: |
+        composer install --no-interaction --no-dev --optimize-autoloader
+        php artisan key:generate --force
+        php artisan config:cache
+        php artisan route:cache
+        php artisan view:cache
+    start:
+      command: supervisord -c /etc/supervisor/conf.d/supervisord.conf
+
+  # PostgreSQL Database
+  - type: db
+    name: db-for-todoapp # データベース名
+    databaseName: db_for_todoapp
+    user: db_for_todoapp_user
+    plan: free
