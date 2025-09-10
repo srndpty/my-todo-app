@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../api/apiClient';
 import { AxiosError } from 'axios';
+import { Helmet } from 'react-helmet-async';
 
 type ValidationErrors = {
   [key: string]: string[];
@@ -46,6 +47,10 @@ function RegisterPage() {
 
   return (
     <div>
+      <Helmet>
+        <title>Register Page - ToDo App</title>
+        <meta name="description" content="Manage your daily tasks efficiently." />
+      </Helmet>
       <h2>Register</h2>
       <form onSubmit={handleSubmit}>
         {error && <p style={{ color: 'red', whiteSpace: 'pre-wrap' }}>{error}</p>}

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import apiClient from '../api/apiClient';
+import { Helmet } from 'react-helmet-async';
 
 function LoginPage() {
   const [email, setEmail] = useState<string>('');
@@ -27,7 +28,11 @@ function LoginPage() {
 
   return (
     <div>
-      <h2>Login</h2>
+      <Helmet>
+        <title>Login Page - ToDo App</title>
+        <meta name="description" content="Manage your daily tasks efficiently." />
+      </Helmet>
+        <h2>Login</h2>
       <form onSubmit={handleSubmit}>
         {error && <p style={{ color: 'red' }}>{error}</p>}
         <div>

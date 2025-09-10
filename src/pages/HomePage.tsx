@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo  } from 'react'; // useEffect をインポ
 import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import axios from 'axios';
+import { Helmet } from 'react-helmet-async';
 
 // 1つのタスクが持つデータの「型」を定義しておく（TypeScriptが守ってくれる）
 type Task = {
@@ -120,6 +121,10 @@ function HomePage() {
 
   return (
     <div className="App">
+      <Helmet>
+        <title>My Tasks - ToDo App</title>
+        <meta name="description" content="Manage your daily tasks efficiently." />
+      </Helmet>
       <h1>ToDoリスト</h1>
       {/* タスク追加フォーム */}
       <div>
