@@ -10,7 +10,9 @@ jobs:
   laravel-tests:
 
     runs-on: ubuntu-latest
-
+    defaults:
+      run:
+        working-directory: ./my-todo-api
     # (1) PostgreSQLサービスコンテナを追加
     services:
       postgres:
