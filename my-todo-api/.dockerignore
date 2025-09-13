@@ -1,0 +1,43 @@
+# Git & OS files
+.git
+.gitignore
+.DS_Store
+Thumbs.db
+
+# Editor configuration
+.vscode/
+.idea/
+
+# Local development environment files
+.env
+.env.backup
+.env.example
+docker-compose.yml
+Dockerfile
+render.yaml
+entrypoint.sh
+supervisord.conf
+nginx.conf
+www.conf
+
+# Node.js dependencies (if any)
+node_modules/
+npm-debug.log
+
+# Composer dependencies
+vendor/
+
+# Laravel storage files
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/logs/*.log
+!storage/logs/.gitkeep
+
+# Public assets (if compiled elsewhere)
+public/build/
+public/hot
+
+# Test files
+tests/
+phpunit.xml
