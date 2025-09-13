@@ -110,4 +110,96 @@ class TaskTest extends TestCase
             ->deleteJson("/api/tasks/{$anotherUserTask->id}")
             ->assertForbidden(); // ステータスコードが403であることを確認
     }
+
+    /**
+     * 認証済みのユーザーが自分のタスクを更新できることをテスト
+     * @return void
+     */
+    public function test_an_authenticated_user_can_update_their_own_task(): void
+    {
+        $user = User::factory()->create();
+        $task = Task::factory()->create(['user_id' => $user->id, 'completed' => false]);
+
+        $this->actingAs($user)
+            ->putJson("/api/tasks/{$task->id}", ['completed' => true])
+            ->assertOk()
+            ->assertJsonFragment(['completed' => true]);
+
+        $this->assertDatabaseHas('tasks', [
+            'id' => $task->id,
+            'completed' => true,
+        ]);
+    }
+
+    /**
+     * 認証済みのユーザーが自分のタスクを削除できることをテスト
+     * @return void
+     */
+    public function test_an_authenticated_user_can_delete_their_own_task(): void
+    {
+        $user = User::factory()->create();
+        $task = Task::factory()->create(['user_id' => $user->id]);
+
+        $this->actingAs($user)
+            ->deleteJson("/api/tasks/{$task->id}")
+            ->assertNoContent();
+
+        $this->assertDatabaseMissing('tasks', [
+            'id' => $task->id,
+        ]);
+    }
+
+    /**
+     * タスク一覧APIのレスポンス構造を検証する
+     * @return void
+     */
+    public function test_tasks_index_response_structure(): void
+    {
+        $user = User::factory()->create();
+        Task::factory()->count(2)->create(['user_id' => $user->id]);
+
+        $response = $this->actingAs($user)->getJson('/api/tasks');
+
+        $response
+            ->assertOk()
+            ->assertJsonStructure([
+                '*' => [ // 配列で返る場合
+                    'id',
+                    'title',
+                    'completed',
+                    'created_at',
+                    'updated_at'
+                ]
+            ]);
+    }
+
+    /**
+     * タイトルが255文字を超える場合のバリデーションエラーをテスト
+     * @return void
+     */
+    public function test_title_max_length_validation(): void
+    {
+        $user = User::factory()->create();
+        $longTitle = str_repeat('a', 256); // 256文字
+
+        $this->actingAs($user)
+            ->postJson('/api/tasks', ['title' => $longTitle])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('title');
+    }
+
+    /**
+     * completedにboolean以外を送るとバリデーションエラー
+     * @return void
+     */
+    public function test_completed_field_must_be_boolean(): void
+    {
+        $user = User::factory()->create();
+        $task = Task::factory()->create(['user_id' => $user->id]);
+
+        $this->actingAs($user)
+            ->putJson("/api/tasks/{$task->id}", ['completed' => 'not-boolean'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('completed');
+    }
 }
